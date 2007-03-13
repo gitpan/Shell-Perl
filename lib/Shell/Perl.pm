@@ -7,10 +7,10 @@ use warnings;
 
 # $Id: Perl.pm 1131 2007-01-27 17:43:35Z me $
 
-our $VERSION = '0.0008';
+our $VERSION = '0.0009';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
-Shell::Perl->mk_accessors(qw(out_type context));
+Shell::Perl->mk_accessors(qw(out_type context package)); # XXX use_strict
 
 use Term::ReadLine;
 use Data::Dump ();
@@ -19,10 +19,16 @@ use YAML ();
 
 # out_type defaults to 'D';
 # context defaults to 'list'
+# package defaults to __PACKAGE__ . '::sandbox'
+# XXX use_strict defaults to 0
 
 sub new {
     my $self = shift;
-    return $self->SUPER::new({ out_type => 'D', context => 'list', @_ });
+    return $self->SUPER::new({ 
+                           out_type => 'D', 
+                           context => 'list', 
+                           package => __PACKAGE__ . '::sandbox',
+                           @_ });
 }
 
 sub _shell_name {
@@ -97,6 +103,7 @@ Shell commands:           (begin with ':')
   :exit or :q(uit) - leave the shell
   :set out (D|DD|Y) - setup the output with Data::Dump, Data::Dumper or YAML
   :set ctx (scalar|list|void|s|l|v|$|@|_) - setup the eval context
+  :reset - reset the environment
   :h(elp) - get this help screen
 
 HELP
@@ -105,13 +112,17 @@ sub help {
     print HELP;
 }
 
-#   :reset - reset the environment
 # :reset is a nice idea - but I wanted more like CPAN reload
 # I retreated the current implementation of :reset
 #    because %main:: is used as the evaluation package
 #    and %main:: = () is too severe by now
 
 sub reset {
+    my $self = shift;
+    my $package = $self->package;
+    return if $package eq 'main'; # XXX don't reset %main::
+    no strict 'refs';
+    %{"${package}::"} = ();
     #%main:: = (); # this segfaults at my machine
 }
 
@@ -173,9 +184,10 @@ sub run {
 sub eval {
     my $self = shift;
     my $exp = shift;
+    my $package = $self->package;
 
     return eval <<CHUNK;
-       package main; # XXX
+       package $package; # XXX
        no strict qw(vars subs);
        $exp
 CHUNK
@@ -321,6 +333,12 @@ of the expression.
     pirl @> $var = 'a 1 2 3'; $var =~ /(\w+) (\d+) (\d+)/ #scalar
     1
 
+=item :reset
+
+Resets the environment, erasing the symbols created
+at the current evaluation package. See the
+section L<"ABOUT EVALUATION">.
+
 =back
 
 =head2 METHODS
@@ -421,6 +439,45 @@ executable name and context. For example,
 "pirl @>", "pirl $>", and "pirl >".
 
 =back
+
+=head1 GORY DETAILS
+
+=head2 ABOUT EVALUATION
+
+When the statement read is evaluated, this is done 
+at a different package, which is C<Shell::Perl::sandbox> 
+by default.
+
+So:
+
+    $ perl -Mlib=lib bin/pirl
+    Welcome to the Perl shell. Type ':help' for more information
+
+    pirl @> $a = 2;
+    2
+
+    pirl @> :set out Y # output in YAML
+
+    pirl @> \%Shell::Perl::sandbox::
+    ---
+    BEGIN: !!perl/glob:
+      PACKAGE: Shell::Perl::sandbox
+      NAME: BEGIN
+    a: !!perl/glob:
+      PACKAGE: Shell::Perl::sandbox
+      NAME: a
+      SCALAR: 2
+
+This package serves as an environment for the current
+shell session and :reset can wipe it away.
+
+    pirl @> :reset
+
+    pirl @> \%Shell::Perl::sandbox::
+    ---
+    BEGIN: !!perl/glob:
+      PACKAGE: Shell::Perl::sandbox
+      NAME: BEGIN
 
 
 =head1 TO DO

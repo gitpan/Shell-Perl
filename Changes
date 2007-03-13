@@ -1,5 +1,10 @@
 Revision history for Perl extension Shell::Perl.
 
+0.0009  Mar 13, 2007
+        - forgot README in MANIFEST
+        - the default evaluation package is now
+          "Shell::Perl::sandbox"
+
 0.0008  Mar 13, 2007
         - cmarcelo: some doc typos fixed
         - a SEE ALSO section
