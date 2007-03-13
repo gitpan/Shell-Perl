@@ -1,0 +1,33 @@
+Revision history for Perl extension Shell::Perl.
+
+0.0008  Mar 13, 2007
+        - cmarcelo: some doc typos fixed
+        - a SEE ALSO section
+        - first CPAN release
+
+0.0007  Mar 7, 2007
+        - added some POD to Shell.pm and pirl source files
+
+0.0006  Feb 23, 2007
+        - sources imported to Google code (no history :(, yet)
+        - patches by cmarcelo:
+          * implement list and void contexts for evaluation
+          * implement context override in a per-input basis
+        - we have tests now, even though t/98pod-coverage.t
+          does not pass yet
+
+0.0005  Jan 27, 2007
+        - relax the restrictions during eval - no strict qw(vars subs)
+
+0.0004  Jan 25, 2007
+        - the same changes as before, now working
+
+0.0003  Jan 25, 2007
+        - prompt changes with the script name
+        - psh renamed to pirl
+        - borked
+
+0.0002 ?
+
+0.0001 ?
+
