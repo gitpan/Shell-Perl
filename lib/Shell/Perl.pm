@@ -5,30 +5,58 @@ use 5;
 use strict;
 use warnings;
 
-# $Id: Perl.pm 1131 2007-01-27 17:43:35Z me $
+# /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
+# $Id: Perl.pm 85 2007-03-15 03:38:25Z a.r.ferreira $
 
-our $VERSION = '0.0009';
+our $VERSION = '0.0010';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
-Shell::Perl->mk_accessors(qw(out_type context package)); # XXX use_strict
+Shell::Perl->mk_accessors(qw(out_type dumper context package)); # XXX use_strict
 
 use Term::ReadLine;
-use Data::Dump ();
-use Data::Dumper ();
-use YAML ();
+use Shell::Perl::Dumper;
 
-# out_type defaults to 'D';
+# out_type defaults to one of 'D', 'DD', 'Y', 'P';
+# dumper XXX
 # context defaults to 'list'
 # package defaults to __PACKAGE__ . '::sandbox'
 # XXX use_strict defaults to 0
 
 sub new {
     my $self = shift;
-    return $self->SUPER::new({ 
-                           out_type => 'D', 
+    my $sh = $self->SUPER::new({ 
                            context => 'list', 
                            package => __PACKAGE__ . '::sandbox',
                            @_ });
+    $sh->_init;
+    return $sh;
+}
+
+my %dumper_for = (
+   'D' => 'Shell::Perl::Data::Dump',
+   'DD' => 'Shell::Perl::Data::Dumper',
+   'Y' => 'Shell::Perl::Dumper::YAML',
+   'Data::Dump' => 'Shell::Perl::Data::Dump',
+   'Data::Dumper' => 'Shell::Perl::Data::Dumper',
+   'YAML' => 'Shell::Perl::Dumper::YAML',
+
+   'P' => 'Shell::Perl::Dumper::Plain',
+   'plain' => 'Shell::Perl::Dumper::Plain',
+);
+
+sub _init {
+    my $self = shift;
+
+    # loop until you find one available alternative for dump format
+    my $dumper_class;
+    for my $format ( qw(D DD Y P) ) {
+        if ($dumper_for{$format}->is_available) {
+            #$self->print("format: $format\n");
+            $self->set_out($format);
+            last 
+        } # XXX this is not working 100% - and I have no clue about it
+    }
+
 }
 
 sub _shell_name {
@@ -41,33 +69,49 @@ sub print {
     print @_;
 }
 
+# XXX remove: code and docs
 sub out {
     my $self = shift;
 
     # XXX I want to improve this: preferably with an easy way to add dumpers
     if ($self->context eq 'scalar') {
-        $self->print(Data::Dump::dump(shift), "\n") if $self->out_type eq 'D';
-        $self->print(Data::Dumper::Dumper(shift)) if $self->out_type eq 'DD';
-        $self->print(YAML::Dump(shift)) if $self->out_type eq 'Y';
+        $self->print($self->dumper->dump_scalar(shift), "\n");
     } else { # list
-        $self->print(Data::Dump::dump(@_), "\n") if $self->out_type eq 'D';
-        $self->print(Data::Dumper::Dumper(@_)) if $self->out_type eq 'DD';
-        $self->print(YAML::Dump(@_)) if $self->out_type eq 'Y';
+        $self->print($self->dumper->dump_list(@_), "\n");
     }
+}
+
+# XXX I want to improve this: preferably with an easy way to add dumpers
+
+sub _print_scalar { # XXX make public, document
+    my $self = shift;
+    $self->print($self->dumper->dump_scalar(shift), "\n");
+}
+
+sub _print_list { # XXX make public, document
+    my $self = shift;
+    $self->print($self->dumper->dump_list(@_), "\n");
+}
+
+sub _warn {
+    shift;
+    my $shell_name = _shell_name;
+    warn "$shell_name: ", @_, "\n";
 }
 
 sub set_out {
     my $self = shift;
     my $type = shift;
-    if ($type =~ /^(DD|Data::Dumper)$/) {
-        $self->out_type('DD');
-    } elsif ($type =~ /^(Y|YAML)$/) {
-        $self->out_type('Y');
-    } elsif ($type =~ /^(D|Data::Dump)$/) {
-        $self->out_type('D');
+    my $dumper_class = $dumper_for{$type};
+    if (!defined $dumper_class) {
+        $self->_warn("unknown dumper $type");
+        return;
+    } 
+    if ($dumper_class->is_available) {
+        $self->dumper($dumper_class->new);
+        $self->out_type($type);
     } else {
-        my $shell_name = _shell_name;
-        warn "$shell_name: don't know what you're talking about\n";
+        $self->_warn("can't load dumper $dumper_class");
     }
 }
 
@@ -92,8 +136,18 @@ sub set_ctx {
     if ($context) {
         $self->context($context);
     } else {
-        my $shell_name = _shell_name;
-        warn "$shell_name: don't know what you're talking about\n";
+        $self->_warn("unknown context $context");
+    }
+}
+
+sub set_package {
+    my $self    = shift;
+    my $package = shift;
+
+    if ($package =~ /( [a-zA-Z_] \w*  :: )* [a-zA-Z_] \w* /x) {
+        $self->package($package);
+    } else {
+        $self->_warn("bad package name $package");
     }
 }
 
@@ -101,8 +155,9 @@ use constant HELP =>
     <<'HELP';
 Shell commands:           (begin with ':')
   :exit or :q(uit) - leave the shell
-  :set out (D|DD|Y) - setup the output with Data::Dump, Data::Dumper or YAML
+  :set out (D|DD|Y|P) - setup the output format
   :set ctx (scalar|list|void|s|l|v|$|@|_) - setup the eval context
+  :set package <name> - set package in which shell eval statements
   :reset - reset the environment
   :h(elp) - get this help screen
 
@@ -147,10 +202,13 @@ sub run {
         s/^\s+//g;
         s/\s+$//g;
 
-        if (/^:/) { # shell commands
+        # Shell commands start with ':' followed by something else
+        # which is not ':', so we can use things like '::my_subroutine()'.
+        if (/^:[^:]/) {
             last if /^:(exit|quit|q)/;
             $self->set_out($1) if /^:set out (\S+)/;
             $self->set_ctx($1) if /^:set ctx (\S+)/;
+            $self->set_package($1) if /^:set package (\S+)/;
             $self->reset if /^:reset/;
             $self->help if /^:h(elp)?/;
             # unknown shell command ?!
@@ -163,16 +221,16 @@ sub run {
         if ($context eq 'scalar') {
             my $out = $self->eval($_);
             if ($@) { warn "ERROR: $@"; next }
-            $self->out($out);
+            $self->_print_scalar($out);
         } elsif ($context eq 'list') {
             my @out = $self->eval($_);
             if ($@) { warn "ERROR: $@"; next }
-            $self->out(@out);
+            $self->_print_list(@out);
         } elsif ($context eq 'void') {
             $self->eval($_);
             if ($@) { warn "ERROR: $@"; next }
         } else {
-            # XXX ???
+            # XXX should not happen
         }
 
     }
@@ -189,6 +247,7 @@ sub eval {
     return eval <<CHUNK;
        package $package; # XXX
        no strict qw(vars subs);
+#line 1
        $exp
 CHUNK
 }
@@ -200,6 +259,7 @@ sub run_with_args {
     my $shell = Shell::Perl->new();
     $shell->run;
 }
+
 
 1;
 
@@ -237,7 +297,7 @@ __END__
 
 =head1 NAME
 
-Shell::Perl - A read-eval-loop in Perl 
+Shell::Perl - A read-eval-print loop in Perl 
 
 =head1 SYNOPSYS
 
@@ -294,7 +354,7 @@ Leave the shell. The Perl statement C<exit> will work too.
 
 SYNONYMS: :exit
 
-=item :set out (D|DD|Y)
+=item :set out (D|DD|Y|P)
 
 Changes the dumper for the expression results used before
 output. The current supported are:
@@ -303,7 +363,7 @@ output. The current supported are:
 
 =item D
 
-C<Data::Dump>, the default
+C<Data::Dump>
 
 =item DD
 
@@ -313,7 +373,19 @@ C<Data::Dumper>, the good and old core module
 
 C<YAML>
 
+=item P
+
+a plain dumper ("$ans" or "@ans")
+
 =back
+
+When creating the shell, the dump format is searched
+among the available ones in the order "D", "DD", "Y"
+and "P". That means L<Data::Dump> is preferred and will
+be used if available/installed. Otherwise, L<Data::Dumper>
+is tried, and so on.
+
+Read more about dumpers at L<Shell::Perl::Dumper>.
 
 =item :set ctx (scalar|list|void|s|l|v|$|@|_)
 
@@ -421,14 +493,21 @@ Assigns to the current shell context. The argument
 must be one of C< ( 'scalar', 'list', 'void',
 's', 'l', 'v', '$', '@', '_' ) >.
 
+=item B<set_package>
+
+    $sh->set_package($package);
+
+Changes current evaluation package. Doesn't change if the
+new package name is malformed.
+
 =item B<set_out>
 
     $sh->set_out($dumper);
 
 Changes the current dumper used for printing
 the evaluation results. Actually must be one of
-"D" (for Data::Dump), "DD" (for Data::Dumper)
-or "Y" (for YAML).
+"D" (for Data::Dump), "DD" (for Data::Dumper),
+"Y" (for YAML) or "P" (for plain string interpolation).
 
 =item B<prompt_title>
 
@@ -518,11 +597,19 @@ An extra list of Perl shells can be found here:
 
 =head1 BUGS
 
+It is a one-line evaluator by now.
+
+I don't know what happens if you eval within an eval.
+I don't expect good things to come. (Lorn who prodded
+me about this will going to find it out and then
+I will tell you.)
+
 There are some quirks with Term::Readline (at least on Windows).
 
 There are more bugs. I am lazy to collect them all and list them now.
 
-Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Shell-Perl>.
+Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Shell-Perl>
+or L<mailto://bugs-Shell-Perl@rt.cpan.org>.
 
 =head1 AUTHOR
 
