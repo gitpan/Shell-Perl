@@ -6,9 +6,9 @@ use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: Perl.pm 118 2007-06-21 12:16:31Z a.r.ferreira $
+# $Id: Perl.pm 123 2007-06-21 13:57:56Z a.r.ferreira $
 
-our $VERSION = '0.0012';
+our $VERSION = '0.0013';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
 Shell::Perl->mk_accessors(qw(out_type dumper context package term )); # XXX use_strict
@@ -39,6 +39,7 @@ my %dumper_for = (
    'Data::Dump' => 'Shell::Perl::Data::Dump',
    'Data::Dumper' => 'Shell::Perl::Data::Dumper',
    'YAML' => 'Shell::Perl::Dumper::YAML',
+   'DDS' => 'Shell::Perl::Data::Dump::Streamer',
 
    'P' => 'Shell::Perl::Dumper::Plain',
    'plain' => 'Shell::Perl::Dumper::Plain',
@@ -49,7 +50,7 @@ sub _init {
 
     # loop until you find one available alternative for dump format
     my $dumper_class;
-    for my $format ( qw(D DD Y P) ) {
+    for my $format ( qw(D DD  DDS Y P) ) {
         if ($dumper_for{$format}->is_available) {
             #$self->print("format: $format\n");
             $self->set_out($format);
@@ -656,7 +657,7 @@ There are more bugs. I am lazy to collect them all and list them now.
 Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Shell-Perl>
 or L<mailto://bugs-Shell-Perl@rt.cpan.org>.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Adriano R. Ferreira, E<lt>ferreira@cpan.orgE<gt>
 

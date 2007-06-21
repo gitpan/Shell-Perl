@@ -5,9 +5,9 @@ use 5;
 use strict;
 use warnings;
 
-# $Id: Dumper.pm 108 2007-04-28 18:28:14Z a.r.ferreira $
+# $Id: Dumper.pm 122 2007-06-21 13:57:35Z a.r.ferreira $
 
-our $VERSION = '0.0011';
+our $VERSION = '0.0013';
 
 use base qw(Class::Accessor); # to get a new() for free
 
@@ -36,8 +36,27 @@ our @ISA = qw(Shell::Perl::Dumper); # to get a new() for free
 
 # XXX make a Data::Dump object an instance variable
 
+sub require_data_dump {
+    require Data::Dump;
+
+    # XXX hack Data::Dump as it does not dump code
+    my $_dump = \&Data::Dump::_dump; # original
+
+    no warnings 'redefine';
+    *Data::Dump::_dump = sub {
+        my $val = $_[0];
+        my $out = $_dump->(@_);
+        if ( $out eq 'sub { "???" }' ) {
+            require B::Deparse;
+            return 'sub ' . (B::Deparse->new)->coderef2text($val);
+        } else {
+            return $out
+        }
+    }
+}
+
 sub is_available {
-    return eval { require Data::Dump; 1 };
+    return eval { require_data_dump; 1 };
 }
 
 sub dump_scalar {
@@ -66,6 +85,7 @@ sub is_available {
 sub dump_scalar {
     shift;
     require Data::Dumper; 
+    local $Data::Dumper::Deparse = 1;
     return Data::Dumper->Dump([shift], [qw($var)]);
 }
 
@@ -73,6 +93,7 @@ sub dump_list {
     #goto &dump_scalar if @_==2; # fallback to dump_scalar if only one
     shift;
     require Data::Dumper; 
+    local $Data::Dumper::Deparse = 1;
     return Data::Dumper->Dump([[@_]], [qw(*var)]);
 }
 
@@ -97,6 +118,7 @@ sub is_available {
     $YAML_PACKAGE = _require_one_of(qw(YAML::Syck YAML));
     if ($YAML_PACKAGE) {
         $YAML_PACKAGE->import(qw(Dump));
+        do { no strict 'refs'; ${ $YAML_PACKAGE . '::DumpCode' } = 1 };
         return 1
     } else {
         return undef;
@@ -116,6 +138,26 @@ sub dump_list { # XXX
     return Dump(@_);
 }
 
+package Shell::Perl::Data::Dump::Streamer;
+
+our @ISA = qw(Shell::Perl::Dumper);
+
+sub is_available {
+    return eval { require Data::Dump::Streamer; 1 };
+}
+
+sub dump_scalar {
+    shift;
+    require Data::Dump::Streamer; 
+    return Data::Dump::Streamer::Dump(shift)->Names('$var')->Out;
+}
+
+sub dump_list {
+    #goto &dump_scalar if @_==2; # fallback to dump_scalar if only one
+    shift;
+    require Data::Dump::Streamer; 
+    return Data::Dump::Streamer::Dump([@_])->Names('*var')->Out;
+}
 
 1;
 
@@ -317,6 +359,10 @@ Examples of its output:
 When loading, C<YAML::Syck> is preferred to C<YAML>. If it
 is not avaiable, the C<YAML> module is the second option.
 
+=head2 Data::Dump::Streamer
+
+The documentation is yet to be written.
+
 =head2 Plain Dumper
 
 The package C<Shell::Perl::Dumper::Plain> implements a dumper
@@ -350,7 +396,7 @@ Examples of its output:
 Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Shell-Perl>
 or L<mailto://bugs-Shell-Perl@rt.cpan.org>.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Adriano R. Ferreira, E<lt>ferreira@cpan.orgE<gt>
 

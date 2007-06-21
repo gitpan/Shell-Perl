@@ -1,5 +1,10 @@
 Revision history for Perl extension Shell::Perl.
 
+0.0013  Jun 21, 2007
+        - the dumpers now deparse Perl code
+        - added new dumper based on Data::Dump::Streamer,
+          no docs by now (try it with ":set out DDS")
+
 0.0012  Jun 21, 2007
         - added an experimental "dump history" command 
           (RT #26973, by mgrimes)
