@@ -6,12 +6,12 @@ use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: Perl.pm 106 2007-04-28 18:05:32Z a.r.ferreira $
+# $Id: Perl.pm 118 2007-06-21 12:16:31Z a.r.ferreira $
 
-our $VERSION = '0.0011';
+our $VERSION = '0.0012';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
-Shell::Perl->mk_accessors(qw(out_type dumper context package )); # XXX use_strict
+Shell::Perl->mk_accessors(qw(out_type dumper context package term )); # XXX use_strict
 
 use Term::ReadLine;
 use Shell::Perl::Dumper;
@@ -85,12 +85,12 @@ sub out {
 
 sub _print_scalar { # XXX make public, document
     my $self = shift;
-    $self->print($self->dumper->dump_scalar(shift), "\n");
+    $self->print($self->dumper->dump_scalar(shift));
 }
 
 sub _print_list { # XXX make public, document
     my $self = shift;
-    $self->print($self->dumper->dump_list(@_), "\n");
+    $self->print($self->dumper->dump_list(@_));
 }
 
 sub _warn {
@@ -159,6 +159,7 @@ Shell commands:           (begin with ':')
   :set ctx (scalar|list|void|s|l|v|$|@|_) - setup the eval context
   :set package <name> - set package in which shell eval statements
   :reset - reset the environment
+  :dump history <file> - (experimental) print the history to STDOUT or a file
   :h(elp) - get this help screen
 
 HELP
@@ -188,15 +189,20 @@ sub prompt_title {
     return "$shell_name $sigil> ";
 }
 
+sub _readline {
+    my $self = shift;
+    return $self->term->readline($self->prompt_title);
+}
+
 sub run {
     my $self = shift;
     my $shell_name = _shell_name;
-    my $term = Term::ReadLine->new($shell_name);
+    $self->term( my $term = Term::ReadLine->new($shell_name) );
     my $prompt = "$shell_name > ";
 
     print "Welcome to the Perl shell. Type ':help' for more information\n\n";
 
-    while (defined ($_ = $term->readline($self->prompt_title))) {
+    while ( defined ($_ = $self->_readline) ) {
 
         # trim
         s/^\s+//g;
@@ -211,6 +217,7 @@ sub run {
             $self->set_package($1) if /^:set package (\S+)/;
             $self->reset if /^:reset/;
             $self->help if /^:h(elp)?/;
+            $self->dump_history($1) if /^:dump history(?:\s+(\S*))?/;
             # unknown shell command ?!
             next;
         }
@@ -253,7 +260,7 @@ sub eval {
 CHUNK
     # XXX gotta save $_, etc.
 }
-
+ 
 
 sub run_with_args {
     my $self = shift; #
@@ -262,6 +269,30 @@ sub run_with_args {
     $shell->run;
 }
 
+sub dump_history {
+    my $self = shift;
+    my $file = shift;
+
+    if ( !$self->term->Features->{getHistory} ) {
+        print "Your Readline doesn't support getHistory\n";
+        return;
+    }
+
+    if ( $file ) {
+        open( my $fh, ">>", $file ) 
+            or do { warn "Couldn't open '$file' for history dump\n"; return; };
+        for ( $self->term->GetHistory ) { 
+            print $fh $_, "\n"; 
+        }
+        close $fh;
+
+        print "Dumped history to '$file'\n\n";
+    } else {
+        print $_, "\n" for($self->{term}->GetHistory);
+        print "\n";
+    }
+    return 1;
+}
 
 1;
 
@@ -486,6 +517,18 @@ Outputs the help as provided by the command ":help".
     $sh->reset;
 
 Does nothing by now, but it will.
+
+=item B<dump_history>
+
+    $sh->dump_history();
+    $sh->dump_history($file);
+
+Prints the readline history to C<STDOUT> or the optional file.
+Used to implement experimental command ":dump history".
+
+This is experimental code and should change in the future.
+More control should be added and integrated with other
+terminal features.
 
 =item B<set_ctx>
 

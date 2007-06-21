@@ -1,5 +1,10 @@
 Revision history for Perl extension Shell::Perl.
 
+0.0012  Jun 21, 2007
+        - added an experimental "dump history" command 
+          (RT #26973, by mgrimes)
+        - hopefully get rid of the double newline in eval output
+
 0.0011  Jun 21, 2007 [worked around Mar 15, 2007]
         - some minor improvements to Makefile.PL - conformance
           to META.yml specification
