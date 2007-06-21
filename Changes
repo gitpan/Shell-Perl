@@ -1,11 +1,19 @@
 Revision history for Perl extension Shell::Perl.
 
+0.0011  Jun 21, 2007 [worked around Mar 15, 2007]
+        - some minor improvements to Makefile.PL - conformance
+          to META.yml specification
+        - when dumping YAML, prefer YAML::Syck to YAML if available
+        - we have a bug to fix: the REPL and the running interpreter
+          share global state (like $_) and so relying on these
+          between lines is not nice (to say the least)
+
 0.0010  Mar 14, 2007
         - this is a read-eval-print loop and not a
           read-eval-loop, doh
         - total rewrite for the implementation of dumpers
         - new output style with the plain dumper (idea
-          borrowed from Sepia by Sean O'Rourke
+          borrowed from Sepia by Sean O'Rourke)
         - Data::Dump, Data::Dumper, YAML are only required
           at runtime and fail gracefully if not there
         - the preferred dumper is via Data::Dump, but it

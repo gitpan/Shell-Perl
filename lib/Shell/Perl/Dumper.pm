@@ -5,9 +5,9 @@ use 5;
 use strict;
 use warnings;
 
-# $Id: Dumper.pm 83 2007-03-15 03:08:53Z a.r.ferreira $
+# $Id: Dumper.pm 108 2007-04-28 18:28:14Z a.r.ferreira $
 
-our $VERSION = '0.0010';
+our $VERSION = '0.0011';
 
 use base qw(Class::Accessor); # to get a new() for free
 
@@ -66,7 +66,7 @@ sub is_available {
 sub dump_scalar {
     shift;
     require Data::Dumper; 
-	return Data::Dumper->Dump([shift], [qw($var)]);
+    return Data::Dumper->Dump([shift], [qw($var)]);
 }
 
 sub dump_list {
@@ -80,20 +80,40 @@ package Shell::Perl::Dumper::YAML;
 
 our @ISA = qw(Shell::Perl::Dumper);
 
+sub _require_one_of {
+    my @modules = @_;
+    for (@modules) {
+        my $ret = eval "require $_; 1";
+        warn "pirl: $_ loaded ok\n" if $ret; # XXX
+        return $_ if $ret;
+    }
+    return undef
+}
+
+our $YAML_PACKAGE;
+
 sub is_available {
-    return eval { require YAML; 1 };
+    #return eval { require YAML; 1 };
+    $YAML_PACKAGE = _require_one_of(qw(YAML::Syck YAML));
+    if ($YAML_PACKAGE) {
+        $YAML_PACKAGE->import(qw(Dump));
+        return 1
+    } else {
+        return undef;
+    }
+
 }
 
 sub dump_scalar {
     shift;
-    require YAML; 
-    return YAML::Dump(shift);
+    #require YAML; # done by &is_available
+    return Dump(shift);
 }
 
 sub dump_list { # XXX
     shift;
-    require YAML; 
-    return YAML::Dump(@_);
+    #require YAML; # done by &is_available
+    return Dump(@_);
 }
 
 
@@ -112,8 +132,8 @@ Shell::Perl::Dumper - Dumpers for Shell:Perl
 
     use Shell::Perl::Dumper;
     $dumper = Shell::Perl::Dumper::Plain->new;
-    print $dumper->print_scalar($scalar);
-    print $dumper->print_list(@list);
+    print $dumper->dump_scalar($scalar);
+    print $dumper->dump_list(@list);
 
 =head1 DESCRIPTION
 
@@ -267,7 +287,7 @@ Examples of its output:
 =head2 YAML
 
 The package C<Shell::Perl::Dumper::YAML> implements a dumper
-which uses L<YAML> to turn Perl variables into
+which uses L<YAML::Syck> or L<YAML> to turn Perl variables into
 a string representation.
 
 It is used like this:
@@ -293,6 +313,9 @@ Examples of its output:
     --- 1
     --- 2
     --- a
+
+When loading, C<YAML::Syck> is preferred to C<YAML>. If it
+is not avaiable, the C<YAML> module is the second option.
 
 =head2 Plain Dumper
 

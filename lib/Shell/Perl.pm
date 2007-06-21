@@ -6,12 +6,12 @@ use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: Perl.pm 85 2007-03-15 03:38:25Z a.r.ferreira $
+# $Id: Perl.pm 106 2007-04-28 18:05:32Z a.r.ferreira $
 
-our $VERSION = '0.0010';
+our $VERSION = '0.0011';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
-Shell::Perl->mk_accessors(qw(out_type dumper context package)); # XXX use_strict
+Shell::Perl->mk_accessors(qw(out_type dumper context package )); # XXX use_strict
 
 use Term::ReadLine;
 use Shell::Perl::Dumper;
@@ -25,7 +25,7 @@ use Shell::Perl::Dumper;
 sub new {
     my $self = shift;
     my $sh = $self->SUPER::new({ 
-                           context => 'list', 
+                           context => 'list', # print context
                            package => __PACKAGE__ . '::sandbox',
                            @_ });
     $sh->_init;
@@ -243,6 +243,7 @@ sub eval {
     my $self = shift;
     my $exp = shift;
     my $package = $self->package;
+    # XXX gotta restore $_, etc.
 
     return eval <<CHUNK;
        package $package; # XXX
@@ -250,6 +251,7 @@ sub eval {
 #line 1
        $exp
 CHUNK
+    # XXX gotta save $_, etc.
 }
 
 
@@ -448,7 +450,7 @@ so that C<Shell::Perl->run_with_args> is kind of:
 
     Shell::Perl->new->run;
 
-=item eval
+=item B<eval>
 
     $answer = $sh->eval($exp);
     @answer = $sh->eval($exp);
