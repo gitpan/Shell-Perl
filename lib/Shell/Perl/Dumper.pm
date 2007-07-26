@@ -5,7 +5,7 @@ use 5;
 use strict;
 use warnings;
 
-# $Id: Dumper.pm 122 2007-06-21 13:57:35Z a.r.ferreira $
+# $Id: Dumper.pm 129 2007-06-21 16:51:26Z a.r.ferreira $
 
 our $VERSION = '0.0013';
 
@@ -188,6 +188,7 @@ By default, C<pirl> will try to convert the results
 via C<Data::Dump>. That means the output will be Perl
 code that may be run to get the data structure again.
 Alternatively, the shell may use C<Data::Dumper> 
+or C<Data::Dump::Streamer>
 with almost the same result with respect to the
 representation as Perl code. (But the output of the
 modules differ enough for sufficiently complex data.)
@@ -257,11 +258,12 @@ L<Shell::Perl> provides four standard dumpers:
 
     * Shell::Perl::Data::Dump
     * Shell::Perl::Data::Dumper
+    * Shell::Perl::Data::Dump::Streamer
     * Shell::Perl::Dumper::YAML
     * Shell::Perl::Dumper::Plain
 
 which corresponds to the four options of the
-command C< :set out >: "D", "DD", "Y", and "P"
+command C< :set out >: "D", "DD", "DDS", "Y", and "P"
 respectively.
 
 =head2 Data::Dump

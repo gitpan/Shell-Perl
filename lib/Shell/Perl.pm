@@ -6,9 +6,9 @@ use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: Perl.pm 123 2007-06-21 13:57:56Z a.r.ferreira $
+# $Id: Perl.pm 131 2007-06-22 12:40:05Z a.r.ferreira $
 
-our $VERSION = '0.0013';
+our $VERSION = '0.0014';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
 Shell::Perl->mk_accessors(qw(out_type dumper context package term )); # XXX use_strict
@@ -50,7 +50,7 @@ sub _init {
 
     # loop until you find one available alternative for dump format
     my $dumper_class;
-    for my $format ( qw(D DD  DDS Y P) ) {
+    for my $format ( qw(D DD DDS Y P) ) {
         if ($dumper_for{$format}->is_available) {
             #$self->print("format: $format\n");
             $self->set_out($format);
@@ -66,28 +66,56 @@ sub _shell_name {
 }
 
 sub print {
-    shift;
-    print @_;
-}
-
-# XXX remove: code and docs
-sub out {
     my $self = shift;
-
-    # XXX I want to improve this: preferably with an easy way to add dumpers
-    if ($self->context eq 'scalar') {
-        $self->print($self->dumper->dump_scalar(shift), "\n");
-    } else { # list
-        $self->print($self->dumper->dump_list(@_), "\n");
-    }
+    print {$self->term->OUT} @_;
 }
+
+## # XXX remove: code and docs
+## sub out {
+##     my $self = shift;
+## 
+##     # XXX I want to improve this: preferably with an easy way to add dumpers
+##     if ($self->context eq 'scalar') {
+##         $self->print($self->dumper->dump_scalar(shift), "\n");
+##     } else { # list
+##         $self->print($self->dumper->dump_list(@_), "\n");
+##     }
+## }
 
 # XXX I want to improve this: preferably with an easy way to add dumpers
+
+=begin private 
+
+=item B<_print_scalar>
+
+    $sh->_print_scalar($answer);
+
+That corresponds to the 'print' in the read-eval-print
+loop (in scalar context). It outputs the evaluation result 
+after passing it through the current dumper.
+
+=end private
+
+=cut
 
 sub _print_scalar { # XXX make public, document
     my $self = shift;
     $self->print($self->dumper->dump_scalar(shift));
 }
+
+=begin private 
+
+=item B<_print_scalar>
+
+    $sh->_print_list(@answers);
+
+That corresponds to the 'print' in the read-eval-print
+loop (in list context). It outputs the evaluation result 
+after passing it through the current dumper.
+
+=end private
+
+=cut
 
 sub _print_list { # XXX make public, document
     my $self = shift;
@@ -147,6 +175,9 @@ sub set_package {
 
     if ($package =~ /( [a-zA-Z_] \w*  :: )* [a-zA-Z_] \w* /x) {
         $self->package($package);
+
+        no strict 'refs';
+        *{ "${package}::quit" } = sub { exit };
     } else {
         $self->_warn("bad package name $package");
     }
@@ -155,8 +186,8 @@ sub set_package {
 use constant HELP =>
     <<'HELP';
 Shell commands:           (begin with ':')
-  :exit or :q(uit) - leave the shell
-  :set out (D|DD|Y|P) - setup the output format
+  :e(x)it or :q(uit) - leave the shell
+  :set out (D|DD|DDS|Y|P) - setup the output format
   :set ctx (scalar|list|void|s|l|v|$|@|_) - setup the eval context
   :set package <name> - set package in which shell eval statements
   :reset - reset the environment
@@ -203,7 +234,7 @@ sub run {
 
     print "Welcome to the Perl shell. Type ':help' for more information\n\n";
 
-    while ( defined ($_ = $self->_readline) ) {
+    REPL: while ( defined ($_ = $self->_readline) ) {
 
         # trim
         s/^\s+//g;
@@ -212,7 +243,7 @@ sub run {
         # Shell commands start with ':' followed by something else
         # which is not ':', so we can use things like '::my_subroutine()'.
         if (/^:[^:]/) {
-            last if /^:(exit|quit|q)/;
+            last REPL if /^:(exit|quit|q|x)/;
             $self->set_out($1) if /^:set out (\S+)/;
             $self->set_ctx($1) if /^:set ctx (\S+)/;
             $self->set_package($1) if /^:set package (\S+)/;
@@ -220,21 +251,21 @@ sub run {
             $self->help if /^:h(elp)?/;
             $self->dump_history($1) if /^:dump history(?:\s+(\S*))?/;
             # unknown shell command ?!
-            next;
+            next REPL;
         }
 
         my $context;
         $context = _ctx($1) if s/#(s|scalar|\$|l|list|\@|v|void|_)\z//;
         $context = $self->context unless $context;
-        if ($context eq 'scalar') {
+        if ( $context eq 'scalar' ) {
             my $out = $self->eval($_);
             if ($@) { warn "ERROR: $@"; next }
             $self->_print_scalar($out);
-        } elsif ($context eq 'list') {
+        } elsif ( $context eq 'list' ) {
             my @out = $self->eval($_);
             if ($@) { warn "ERROR: $@"; next }
             $self->_print_list(@out);
-        } elsif ($context eq 'void') {
+        } elsif ( $context eq 'void' ) {
             $self->eval($_);
             if ($@) { warn "ERROR: $@"; next }
         } else {
@@ -386,9 +417,9 @@ Handy for remembering what the shell commands are.
 
 Leave the shell. The Perl statement C<exit> will work too.
 
-SYNONYMS: :exit
+SYNONYMS: :exit, :x
 
-=item :set out (D|DD|Y|P)
+=item :set out (D|DD|DDS|Y|P)
 
 Changes the dumper for the expression results used before
 output. The current supported are:
@@ -403,6 +434,10 @@ C<Data::Dump>
 
 C<Data::Dumper>, the good and old core module
 
+=item DDS
+
+C<Data::Dump::Streamer>
+
 =item Y
 
 C<YAML>
@@ -414,7 +449,7 @@ a plain dumper ("$ans" or "@ans")
 =back
 
 When creating the shell, the dump format is searched
-among the available ones in the order "D", "DD", "Y"
+among the available ones in the order "D", "DD", "DDS", "Y"
 and "P". That means L<Data::Dump> is preferred and will
 be used if available/installed. Otherwise, L<Data::Dumper>
 is tried, and so on.
@@ -496,16 +531,7 @@ read-eval-print loop.
     $sh->print(@args);
 
 Prints a list of args at the output stream currently used
-by the shell. (It is just STDOUT by now.)
-
-=item B<out>
-
-    $sh->out($answer);
-    $sh->out(@answers);
-
-That corresponds to the 'print' in the read-eval-print
-loop. It outputs the evaluation result after passing it 
-through the current dumper.
+by the shell. 
 
 =item B<help>
 
@@ -553,6 +579,7 @@ new package name is malformed.
 Changes the current dumper used for printing
 the evaluation results. Actually must be one of
 "D" (for Data::Dump), "DD" (for Data::Dumper),
+"DDS" (for Data::Dump::Streamer),
 "Y" (for YAML) or "P" (for plain string interpolation).
 
 =item B<prompt_title>

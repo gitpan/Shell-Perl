@@ -1,5 +1,12 @@
 Revision history for Perl extension Shell::Perl.
 
+0.0014  Jun 22, 2007
+        - Shell::Perl now prints to the output stream of the
+          associated term
+        - new test t/10compile.t
+        - :x is the same as :exit, :quit, :q
+        - quit is an alias to "sub { exit }" in the sandbox package
+
 0.0013  Jun 21, 2007
         - the dumpers now deparse Perl code
         - added new dumper based on Data::Dump::Streamer,

@@ -33,8 +33,10 @@ WriteMakefile(
 );
 
 # recommended:
-#   - one_of: [ YAML::Syck, YAML ]
+#   - -one_of: [ YAML::Syck, YAML ]
 #   - Data::Dump
 #   - Data::Dumper
 #   - Test::Pod 
 #   - Test::Pod::Coverage
+#   - Test::Script
+
