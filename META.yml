@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Shell-Perl
-version:             0.0014
+version:             0.0015
 abstract:            A read-eval-print loop in Perl 
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.36
@@ -8,6 +8,7 @@ distribution_type:   module
 requires:     
     Class::Accessor:               0
     File::Basename:                0
+    Getopt::Long:                  0
     Term::ReadLine:                0
     Test::More:                    0
 meta-spec:

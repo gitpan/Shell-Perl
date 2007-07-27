@@ -6,12 +6,12 @@ use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: Perl.pm 131 2007-06-22 12:40:05Z a.r.ferreira $
+# $Id: Perl.pm 140 2007-07-27 14:33:22Z a.r.ferreira $
 
-our $VERSION = '0.0014';
+our $VERSION = '0.0015';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
-Shell::Perl->mk_accessors(qw(out_type dumper context package term )); # XXX use_strict
+Shell::Perl->mk_accessors(qw( out_type dumper context package term ornaments )); # XXX use_strict
 
 use Term::ReadLine;
 use Shell::Perl::Dumper;
@@ -26,7 +26,6 @@ sub new {
     my $self = shift;
     my $sh = $self->SUPER::new({ 
                            context => 'list', # print context
-                           package => __PACKAGE__ . '::sandbox',
                            @_ });
     $sh->_init;
     return $sh;
@@ -57,6 +56,8 @@ sub _init {
             last 
         } # XXX this is not working 100% - and I have no clue about it
     }
+
+    $self->set_package( __PACKAGE__ . '::sandbox' );
 
 }
 
@@ -230,6 +231,7 @@ sub run {
     my $self = shift;
     my $shell_name = _shell_name;
     $self->term( my $term = Term::ReadLine->new($shell_name) );
+    $term->ornaments($self->ornaments); # XXX 
     my $prompt = "$shell_name > ";
 
     print "Welcome to the Perl shell. Type ':help' for more information\n\n";
@@ -295,9 +297,17 @@ CHUNK
  
 
 sub run_with_args {
-    my $self = shift; #
-    # XXX do something with @ARGV (GetOpt)
-    my $shell = Shell::Perl->new();
+    my $self = shift; 
+
+    # XXX do something with @ARGV (Getopt)
+    my %options = ( ornaments => 1 );
+    if ( @ARGV ) {
+        # only require Getopt::Long if there are actually command line arguments
+        require Getopt::Long;
+        Getopt::Long::GetOptions( \%options, 'ornaments!' );
+    }
+
+    my $shell = Shell::Perl->new(%options);
     $shell->run;
 }
 

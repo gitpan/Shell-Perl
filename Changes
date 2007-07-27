@@ -1,6 +1,11 @@
 Revision history for Perl extension Shell::Perl.
 
-0.0014  Jun 22, 2007
+0.0015  Jul 27, 2007
+        - fixed 'quit'
+        - the first of the Expect tests: t/20expect_quit.t
+        - pirl now accepts switches --ornaments and --noornaments
+
+0.0014  Jul 26, 2007
         - Shell::Perl now prints to the output stream of the
           associated term
         - new test t/10compile.t

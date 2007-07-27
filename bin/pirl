@@ -4,10 +4,11 @@ use strict;
 use warnings;
 
 # /Id: pirl 1124 2007-01-25 19:36:07Z me / # don't erase that for now
-# $Id: pirl 83 2007-03-15 03:08:53Z a.r.ferreira $
+# $Id: pirl 143 2007-07-27 14:42:50Z a.r.ferreira $
 
-use Shell::Perl; our $VERSION = $Shell::Perl::VERSION;
+our $VERSION = '0.0015';
 
+use Shell::Perl;
 Shell::Perl->run_with_args;
 
 __END__
@@ -16,7 +17,12 @@ __END__
 
 pirl - A read-eval-print loop in Perl (see Shell::Perl)
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
+
+    pirl
+    pirl --noornaments
+
+=head1 EXAMPLE SESSION
 
     $ pirl
     Welcome to the Perl shell. Type ':help' for more information
@@ -43,6 +49,10 @@ which does it all.
 
 By now, read the fine details at C<Shell::Perl> documentation.
 
+=head1 OPTIONS
+
+    --ornaments - turn on terminal ornaments (default)
+    --noornaments - turn off terminal organments
 
 =head1 SEE ALSO
 
