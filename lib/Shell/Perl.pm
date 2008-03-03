@@ -6,9 +6,9 @@ use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: Perl.pm 140 2007-07-27 14:33:22Z a.r.ferreira $
+# $Id: /iperl/lib/Shell/Perl.pm 2307 2008-03-03T19:51:41.883047Z a.r.ferreira@gmail.com  $
 
-our $VERSION = '0.0015';
+our $VERSION = '0.0016';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
 Shell::Perl->mk_accessors(qw( out_type dumper context package term ornaments )); # XXX use_strict
@@ -178,7 +178,7 @@ sub set_package {
         $self->package($package);
 
         no strict 'refs';
-        *{ "${package}::quit" } = sub { exit };
+        *{ "${package}::quit" } = sub { $self->quit };
     } else {
         $self->_warn("bad package name $package");
     }
@@ -227,10 +227,58 @@ sub _readline {
     return $self->term->readline($self->prompt_title);
 }
 
+sub _history_file { # XXX
+    require Path::Class;
+    require File::HomeDir;
+    return Path::Class::file( File::HomeDir->my_home, '.pirl-history' )->stringify;
+}
+
+sub _read_history { # XXX belongs to Shell::Perl::ReadLine
+    my $term = shift;
+    my $h    = _history_file;
+    #warn "read history from $h\n"; # XXX
+    if ( $term->Features->{readHistory} ) {
+        $term->ReadHistory( $h );
+    } elsif ( $term->Features->{setHistory} ) {
+        if ( -e $h ) {
+            require File::Slurp;
+            my @h = File::Slurp::read_file( $h );
+            chomp @h;
+            $term->SetHistory( @h );
+        }
+    } else {
+        # warn "Your ReadLine doesn't support setHistory\n";
+    }
+
+}
+
+sub _write_history { # XXX belongs to Shell::Perl::ReadLine
+   my $term = shift;
+   my $h    = _history_file;
+   #warn "write history to $h\n"; # XXX
+   if ( $term->Features->{writeHistory} ) {
+       $term->WriteHistory( $h );
+   } elsif ( $term->Features->{getHistory} ) {
+       require File::Slurp;
+       my @h = map { "$_\n" } $term->GetHistory;
+       File::Slurp::write_file( $h, @h );
+   } else {
+       # warn "Your ReadLine doesn't support getHistory\n";
+   }
+}
+
+sub _new_term {
+    my $self = shift;
+    my $name = shift;
+    my $term = Term::ReadLine->new( $name );
+    _read_history( $term );
+    return $term;
+}
+
 sub run {
     my $self = shift;
     my $shell_name = _shell_name;
-    $self->term( my $term = Term::ReadLine->new($shell_name) );
+    $self->term( my $term = $self->_new_term( $shell_name ) );
     $term->ornaments($self->ornaments); # XXX 
     my $prompt = "$shell_name > ";
 
@@ -275,7 +323,7 @@ sub run {
         }
 
     }
-    #print "Bye.\n"; # XXX
+    $self->quit;
 
 }
 
@@ -294,7 +342,13 @@ sub eval {
 CHUNK
     # XXX gotta save $_, etc.
 }
- 
+
+sub quit {
+    my $self = shift;
+    _write_history( $self->term );
+    $self->print( "Bye.\n" ); # XXX
+    exit;
+}
 
 sub run_with_args {
     my $self = shift; 
@@ -600,6 +654,24 @@ Returns the current prompt which changes with
 executable name and context. For example, 
 "pirl @>", "pirl $>", and "pirl >".
 
+=item B<quit>
+
+    $sh->quit;
+
+This method is invoked when these commands and
+statements are parsed by the REPL:
+
+    :q
+    :quit
+    :x
+    :exit
+    quit
+    exit
+
+It runs the shutdown procedures for a smooth
+termination of the shell. For example, it
+saves the terminal history file.
+
 =back
 
 =head1 GORY DETAILS
@@ -702,9 +774,16 @@ Caio Marcelo, E<lt>cmarcelo@gmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007 by Adriano R. Ferreira
+Copyright (C) 2007, 2008 by Adriano R. Ferreira
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
+
+# Local variables:
+# c-indentation-style: bsd
+# c-basic-offset: 4
+# indent-tabs-mode: nil
+# End:
+# vim: expandtab shiftwidth=4:

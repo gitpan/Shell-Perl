@@ -1,5 +1,12 @@
 Revision history for Perl extension Shell::Perl.
 
+0.016   Mar  3, 2008
+        - quit is now a method
+        - history is now persistent across sections
+          (should work with T::RL::Gnu and T::RL::Perl)
+        - new dependencies: File::HomeDir, Path::Class,
+          and File::Slurp
+
 0.0015  Jul 27, 2007
         - fixed 'quit'
         - the first of the Expect tests: t/20expect_quit.t

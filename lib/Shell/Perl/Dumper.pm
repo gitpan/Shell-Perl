@@ -5,7 +5,7 @@ use 5;
 use strict;
 use warnings;
 
-# $Id: Dumper.pm 129 2007-06-21 16:51:26Z a.r.ferreira $
+# $Id$
 
 our $VERSION = '0.0013';
 

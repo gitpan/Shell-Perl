@@ -13,6 +13,10 @@ WriteMakefile(
         Class::Accessor => 0,
         Getopt::Long    => 0,
 
+		  File::Slurp => 0,
+		  File::HomeDir => 0,
+		  Path::Class => 0,
+
         Test::More      => 0,
 
     },

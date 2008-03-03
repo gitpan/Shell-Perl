@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 # /Id: pirl 1124 2007-01-25 19:36:07Z me / # don't erase that for now
-# $Id: pirl 143 2007-07-27 14:42:50Z a.r.ferreira $
+# $Id: /iperl/bin/pirl 2306 2008-03-03T19:49:26.564673Z a.r.ferreira@gmail.com  $
 
 our $VERSION = '0.0015';
 
@@ -70,7 +70,7 @@ Caio Marcelo, E<lt>cmarcelo@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007 by Adriano R. Ferreira
+Copyright (C) 2007, 2008 by Adriano R. Ferreira
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
