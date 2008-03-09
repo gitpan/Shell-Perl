@@ -7,7 +7,7 @@ use warnings;
 
 # $Id$
 
-our $VERSION = '0.0013';
+our $VERSION = '0.0017';
 
 use base qw(Class::Accessor); # to get a new() for free
 
@@ -168,7 +168,7 @@ __END__
 
 =head1 NAME
 
-Shell::Perl::Dumper - Dumpers for Shell:Perl
+Shell::Perl::Dumper - Dumpers for Shell::Perl
 
 =head1 SYNOPSYS
 

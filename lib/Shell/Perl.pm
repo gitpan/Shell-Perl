@@ -1,14 +1,14 @@
 
 package Shell::Perl;
 
-use 5;
+use 5.006;
 use strict;
 use warnings;
 
 # /Id: Perl.pm 1131 2007-01-27 17:43:35Z me / # don't erase that for now
-# $Id: /iperl/lib/Shell/Perl.pm 2307 2008-03-03T19:51:41.883047Z a.r.ferreira@gmail.com  $
+# $Id: /iperl/lib/Shell/Perl.pm 2317 2008-03-09T16:22:00.577930Z a.r.ferreira@gmail.com  $
 
-our $VERSION = '0.0016';
+our $VERSION = '0.0017';
 
 use base qw(Class::Accessor); # soon use base qw(Shell::Base);
 Shell::Perl->mk_accessors(qw( out_type dumper context package term ornaments )); # XXX use_strict
@@ -358,11 +358,25 @@ sub run_with_args {
     if ( @ARGV ) {
         # only require Getopt::Long if there are actually command line arguments
         require Getopt::Long;
-        Getopt::Long::GetOptions( \%options, 'ornaments!' );
+        Getopt::Long::GetOptions( \%options, 'ornaments!', 'version|v' );
     }
 
     my $shell = Shell::Perl->new(%options);
-    $shell->run;
+    if ( $options{version} ) {
+        $shell->_show_version;
+    } else {
+        $shell->run;
+    }
+}
+
+sub _show_version {
+    my $self = shift;
+    printf "This is %s, version %s (%s, using Shell::Perl %s)\n",
+           _shell_name,
+           $main::VERSION,
+           $0,
+           $Shell::Perl::VERSION;
+    exit 0;
 }
 
 sub dump_history {
@@ -568,8 +582,15 @@ The constructor.
 
     Shell::Perl->run_with_args;
 
-Starts the read-eval-print loop after (possibly) reading
+Starts the read-eval-print loop after reading
 options from C<@ARGV>. It is a class method.
+
+If an option B<-v> or B<--version> is provided,
+instead of starting the REPL, it prints 
+the script identification and exits with 0.
+
+   $ pirl -v
+   This is pirl, version 0.0017 (bin/pirl, using Shell::Perl 0.0017)
 
 =item B<run>
 

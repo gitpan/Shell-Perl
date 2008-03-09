@@ -1,14 +1,15 @@
 #!/usr/bin/perl
 
+use 5.006;
 use strict;
 use warnings;
 
 # /Id: pirl 1124 2007-01-25 19:36:07Z me / # don't erase that for now
-# $Id: /iperl/bin/pirl 2306 2008-03-03T19:49:26.564673Z a.r.ferreira@gmail.com  $
+# $Id: /iperl/bin/pirl 2321 2008-03-09T16:47:36.686169Z a.r.ferreira@gmail.com  $
 
-our $VERSION = '0.0015';
+our $VERSION = '0.0017';
 
-use Shell::Perl;
+use Shell::Perl ();
 Shell::Perl->run_with_args;
 
 __END__
@@ -21,6 +22,9 @@ pirl - A read-eval-print loop in Perl (see Shell::Perl)
 
     pirl
     pirl --noornaments
+
+    pirl --version
+    pirl -v
 
 =head1 EXAMPLE SESSION
 
@@ -53,6 +57,8 @@ By now, read the fine details at C<Shell::Perl> documentation.
 
     --ornaments - turn on terminal ornaments (default)
     --noornaments - turn off terminal organments
+
+    --version, -v - prints version info and exits with 0
 
 =head1 SEE ALSO
 

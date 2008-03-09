@@ -16,6 +16,12 @@ for my $quit_command ( ':quit', ':q', ':exit', ':x', 'exit', 'quit' ) {
         quit    => $quit_command,
     );
 
-    expect_like(qr/^Welcome/, "welcome message");
+    expect_like(
+        qr/\A
+           (?: Using .*? blib $ )?   # cope with noisy 5.6 blib
+           Welcome
+          /msx,
+        "welcome message"
+   );
 
 }

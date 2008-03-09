@@ -1,5 +1,5 @@
 
-use 5;
+use 5.006;
 use ExtUtils::MakeMaker;
 
 my $EUMM_VERSION = eval $ExtUtils::MakeMaker::VERSION;
@@ -17,7 +17,10 @@ WriteMakefile(
 		  File::HomeDir => 0,
 		  Path::Class => 0,
 
-        Test::More      => 0,
+        # test requires
+        'Test::More'      => 0,
+        'Test::Deep'      => 0,
+        'IPC::Cmd'        => 0,
 
     },
     EXE_FILES => [ 'bin/pirl' ],
