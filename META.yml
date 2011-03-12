@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Shell-Perl
-version:            0.0020
+version:            0.0021
 abstract:           A read-eval-print loop in Perl 
 author:
     - A. R. Ferreira <ferreira@cpan.org>
